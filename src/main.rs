@@ -4,7 +4,7 @@ use ethers::{
     utils::Anvil,
 };
 use eyre::Result;
-use std::{convert::TryFrom, path::PathBuf, sync::Arc, time::Duration};
+use std::{convert::TryFrom, env, path::PathBuf, sync::Arc, time::Duration};
 
 // Generate the type-safe contract bindings by providing the ABI
 // definition in human readable format
@@ -20,18 +20,20 @@ abigen!(
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // // the directory we use is root-dir/examples
-    // let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples");
-    // // we use `root` for both the project root and for where to search for contracts since
-    // // everything is in the same directory
-    // let paths = ProjectPathsConfig::builder().root(&root).sources(&root).build().unwrap();
+    let path = env::current_dir()?.join("contracts/src/");
 
-    // // get the solc project instance using the paths above
-    // let project = Project::builder().paths(paths).ephemeral().no_artifacts().build().unwrap();
-    // // compile the project and get the artifacts
-    // let output = project.compile().unwrap();
-    // let contract = output.find("SimpleStorage").expect("could not find contract").clone();
-    // let (abi, bytecode, _) = contract.into_parts();
+    // // the directory we use is root-dir/examples
+    let root = PathBuf::from(path);
+    // we use `root` for both the project root and for where to search for contracts since
+    // everything is in the same directory
+    let paths = ProjectPathsConfig::builder().root(&root).sources(&root).build().unwrap();
+
+    // get the solc project instance using the paths above
+    let project = Project::builder().paths(paths).ephemeral().no_artifacts().build().unwrap();
+    // compile the project and get the artifacts
+    let output = project.compile().unwrap();
+    let contract = output.find("SimpleStorage").expect("could not find contract").clone();
+    let (abi, bytecode, _) = contract.into_parts();
 
     // 2. instantiate our wallet & anvil
     let anvil = Anvil::new().spawn();
@@ -45,14 +47,14 @@ async fn main() -> Result<()> {
     let client = SignerMiddleware::new(provider, wallet);
     let client = Arc::new(client);
 
-    // // 5. create a factory which will be used to deploy instances of the contract
-    // let factory = ContractFactory::new(abi.unwrap(), bytecode.unwrap(), client.clone());
+    // 5. create a factory which will be used to deploy instances of the contract
+    let factory = ContractFactory::new(abi.unwrap(), bytecode.unwrap(), client.clone());
 
-    // // 6. deploy it with the constructor arguments
-    // let contract = factory.deploy("initial value".to_string())?.send().await?;
+    // 6. deploy it with the constructor arguments
+    let contract = factory.deploy("initial value".to_string())?.send().await?;
 
-    // // 7. get the contract's address
-    // let addr = contract.address();
+    // 7. get the contract's address
+    let addr = contract.address();
 
     // 8. instantiate the contract
     let contract = SimpleContract::new(addr, client.clone());
