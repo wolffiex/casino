@@ -35,6 +35,19 @@ contract CasinoTest is Test {
         assertEq(owner, signer);
         console2.log(signer);
 
+        bytes32 next1 = keccak256(abi.encode(nonce));
+        bytes32 next2 = keccak256(abi.encode(next1));
+        bytes32 next3 = keccak256(abi.encode(next2));
+        bytes32 next4 = keccak256(abi.encode(next3));
+        bytes32 next5 = keccak256(abi.encode(next4));
+
+        console2.log("hash rotation");
+        console2.logBytes32(next1);
+        console2.logBytes32(next2);
+        console2.logBytes32(next3);
+        console2.logBytes32(next4);
+        console2.logBytes32(next5);
+
 
 
     }
