@@ -17,6 +17,7 @@ contract SimpleStorage {
 
     function setValue(string memory value) public {
         emit ValueChanged(msg.sender, _value, value);
+        //_value = string(abi.encodePacked(value , "d"));
         _value = value;
     }
 }

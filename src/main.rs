@@ -39,6 +39,18 @@ async fn main() -> Result<()> {
     let anvil = Anvil::new().spawn();
     let wallet: LocalWallet = anvil.keys()[0].clone().into();
 
+    // Declare the message you want to sign.
+    let message = "Some data";
+
+    // sign message from your wallet and print out signature produced.
+    let signature = wallet.sign_message(message).await?;
+    println!("Produced signature {}", signature);
+    // verify the signature produced from your wallet.
+    signature.verify(message, wallet.address()).unwrap();
+    println!("Verified signature produced by {:?}!", wallet.address());
+
+
+
     // 3. connect to the network
     let provider =
         Provider::<Http>::try_from(anvil.endpoint())?.interval(Duration::from_millis(10u64));
