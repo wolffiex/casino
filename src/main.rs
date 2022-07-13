@@ -20,19 +20,20 @@ abigen!(
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let path = env::current_dir()?.join("contracts/src/");
+    let path = env::current_dir()?.join("contracts/");
 
     // // the directory we use is root-dir/examples
-    let root = PathBuf::from(path);
+    let root = PathBuf::from(path.clone());
+    let srcs = PathBuf::from(path.clone().join("src/"));
     // we use `root` for both the project root and for where to search for contracts since
     // everything is in the same directory
-    let paths = ProjectPathsConfig::builder().root(&root).sources(&root).build().unwrap();
+    let paths = ProjectPathsConfig::builder().root(&root).sources(&srcs).build().unwrap();
 
     // get the solc project instance using the paths above
     let project = Project::builder().paths(paths).ephemeral().no_artifacts().build().unwrap();
     // compile the project and get the artifacts
     let output = project.compile().unwrap();
-    let contract = output.find("SimpleStorage").expect("could not find contract").clone();
+    let contract = output.find_first("SimpleStorage").expect("could not find contract").clone();
     let (abi, bytecode, _) = contract.into_parts();
 
     // 2. instantiate our wallet & anvil
