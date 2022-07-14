@@ -4,19 +4,15 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import {CasinoProp, Casino} from "../src/Casino.sol";
 
-
-contract CasinoTest is CasinoProp,Test {
+contract CasinoTest is CasinoProp, Test {
     Casino sino;
     bytes32 startingNonce;
 
     function testNonce() public {
         startingNonce = keccak256("seed string");
         Prop memory double_or_nothing = Prop({
-            probability : 127,
-            odds : Odds({
-                mult: 2,
-                div: 0
-            })
+            probability: 127,
+            odds: Odds({numerator: 2, denominator: 1})
         });
         Prop[] memory props = new Prop[](1);
         props[0] = double_or_nothing;
@@ -36,9 +32,14 @@ contract CasinoTest is CasinoProp,Test {
         console2.logBytes32(s);
         console2.logBytes32(nonce);
         Prop[] memory got_props = sino.getProps();
-        console2.log("probabl");
-        console2.log(got_props[0].probability);
-        
+        emit log_named_uint("proba", got_props[0].probability);
+
+        uint256 ttt = 45;
+        uint256 xxx = ttt / 3;
+        emit log_named_uint("divi", xxx);
+
+        uint256 amount = 100000;
+        emit log_named_decimal_uint("Amount: ", amount, 18);
 
         address signer = ecrecover(nonce, v, r, s);
 
@@ -57,9 +58,5 @@ contract CasinoTest is CasinoProp,Test {
         console2.logBytes32(next3);
         console2.logBytes32(next4);
         console2.logBytes32(next5);
-
-
-
     }
-
 }
