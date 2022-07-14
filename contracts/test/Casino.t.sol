@@ -8,7 +8,15 @@ contract CasinoTest is CasinoProp, Test {
     Casino sino;
     bytes32 startingNonce;
 
-    function testNonce() public {
+    function signBet(uint256 key, bytes32 nonce)
+        internal
+        returns (Signed memory)
+    {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, nonce);
+        return Signed({v: v, r: r, s: s});
+    }
+
+    function testDoubleOrNothing() public {
         startingNonce = keccak256("seed string");
         Prop memory double_or_nothing = Prop({
             probability: 127,
@@ -16,47 +24,26 @@ contract CasinoTest is CasinoProp, Test {
         });
         Prop[] memory props = new Prop[](1);
         props[0] = double_or_nothing;
-        sino = new Casino(startingNonce, props);
+        uint256 bank_pk = 0xA;
+        address bank = vm.addr(bank_pk);
+        vm.deal(bank, 1 ether);
+        vm.startPrank(bank);
+        sino = new Casino{value: 1000}(startingNonce, props);
+        vm.stopPrank();
 
-        assertTrue(true);
-        bytes32 nonce = sino.nonce();
-        assertEq(startingNonce, nonce);
+        address contract_address = address(sino);
+        uint256 contract_size = contract_address.balance;
+        emit log_named_address("contr", address(sino));
+        emit log_named_uint("bala", contract_size);
 
-        uint256 ownerPrivateKey = 0xA11CE;
-        address owner = vm.addr(ownerPrivateKey);
-        console2.log("owner");
-        console2.log(owner);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, nonce);
-        console2.log(v);
-        console2.logBytes32(r);
-        console2.logBytes32(s);
-        console2.logBytes32(nonce);
-        Prop[] memory got_props = sino.getProps();
-        emit log_named_uint("proba", got_props[0].probability);
-
-        uint256 ttt = 45;
-        uint256 xxx = ttt / 3;
-        emit log_named_uint("divi", xxx);
-
-        uint256 amount = 100000;
-        emit log_named_decimal_uint("Amount: ", amount, 18);
-
-        address signer = ecrecover(nonce, v, r, s);
-
-        assertEq(owner, signer);
-        console2.log(signer);
-
-        bytes32 next1 = keccak256(abi.encode(nonce));
-        bytes32 next2 = keccak256(abi.encode(next1));
-        bytes32 next3 = keccak256(abi.encode(next2));
-        bytes32 next4 = keccak256(abi.encode(next3));
-        bytes32 next5 = keccak256(abi.encode(next4));
-
-        console2.log("hash rotation");
-        console2.logBytes32(next1);
-        console2.logBytes32(next2);
-        console2.logBytes32(next3);
-        console2.logBytes32(next4);
-        console2.logBytes32(next5);
+        uint256 bettor_pk = 0xB;
+        address bettor = vm.addr(bettor_pk);
+        vm.deal(bettor, 1 ether);
+        vm.startPrank(bettor);
+        emit log_named_address("bettor", bettor);
+        uint256 bet_amount = 1;
+        Signed memory signed = signBet(bettor_pk, sino.nonce());
+        sino.placeBet{value: bet_amount}(signed);
+        emit log_named_uint("nowbala", contract_address.balance);
     }
 }
