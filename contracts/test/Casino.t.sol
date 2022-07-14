@@ -45,5 +45,7 @@ contract CasinoTest is CasinoProp, Test {
         Signed memory signed = signBet(bettor_pk, sino.nonce());
         sino.placeBet{value: bet_amount}(signed);
         emit log_named_uint("nowbala", contract_address.balance);
+
+        sino.resolveBet(signBet(bank_pk, sino.nonce()));
     }
 }
