@@ -11,6 +11,11 @@ contract CasinoProp {
         uint8 denominator;
     }
 
+    struct Bet {
+        address payable bettor;
+        uint256 amount;
+    }
+
     struct Signed {
         uint8 v;
         bytes32 r;
@@ -19,30 +24,26 @@ contract CasinoProp {
 }
 
 contract Casino is CasinoProp {
-    event BetPlaced(address indexed author, uint256 amount);
+    event BetPlaced(Bet bet);
+    event BetResolved(uint8 result, Bet bet, Prop prop, uint256 payout);
 
     address bank;
     bytes32 public nonce;
-    bytes32 last_bet;
     Prop[] public props;
     Odds max_payout;
-    enum State {
-        Accepting,
-        Waiting
+    enum Phase {
+        Betting,
+        Banking
     }
 
-    State public state;
+    Phase public phase;
+    Bet pending_bet;
 
     constructor(bytes32 _nonce, Prop[] memory _props) payable {
         require(msg.value > 0, "Casino must be funded");
         bank = msg.sender;
         max_payout = Odds({numerator: 0, denominator: 0});
         nonce = _nonce;
-        Prop memory don = Prop({
-            probability: 127,
-            odds: Odds({numerator: 2, denominator: 1})
-        });
-        props.push(don);
         for (uint256 i = 0; i < _props.length; i++) {
             uint256 test_amount = 10000;
             Odds memory odds = _props[i].odds;
@@ -61,13 +62,13 @@ contract Casino is CasinoProp {
         pure
         returns (uint256)
     {
-        if (odds.numerator == 0) return 0;
+        if (odds.numerator == 0 || odds.denominator == 0) return 0;
         return (amount / odds.denominator) * odds.numerator;
     }
 
     function placeBet(Signed memory signed) public payable {
         uint256 amount = msg.value;
-        require(state == State.Accepting, "Bet is pending");
+        require(phase == Phase.Betting, "Awaiting bank");
         require(amount > 0, "Gotta have skin in the game");
         require(
             calculateReturn(amount, max_payout) < address(this).balance,
@@ -75,31 +76,46 @@ contract Casino is CasinoProp {
         );
         address signer = ecrecover(nonce, signed.v, signed.r, signed.s);
         require(signer == msg.sender, "Bad signature");
-        emit BetPlaced(msg.sender, msg.value);
-        state = State.Waiting;
-        last_bet = keccak256(abi.encode(signed));
+        phase = Phase.Banking;
+        nonce = keccak256(abi.encode(signed));
+        pending_bet = Bet({
+            bettor: payable(msg.sender),
+            amount: amount
+        });
+        emit BetPlaced(pending_bet);
     }
 
     function resolveBet(Signed memory signed) public payable {
+        require(phase == Phase.Banking, "Awaiting bet");
         address signer = ecrecover(nonce, signed.v, signed.r, signed.s);
         require(signer == bank, "Bad signature");
-        uint8 result = reduceToByte(last_bet, keccak256(abi.encode(signed)));
-    }
-
-    function getProps() public view returns (Prop[] memory) {
-        Prop[] memory m_props = new Prop[](props.length);
-        for (uint256 i = 0; i < props.length; i++) {
-            m_props[i] = props[i];
+        nonce = keccak256(abi.encode(signed));
+        uint8 result = reduceToUint(nonce);
+        uint8 ptr = 0;
+        Prop memory matched_prop;
+        for (uint i=0; i < props.length; i++) {
+            Prop memory p = props[i];
+            ptr += p.probability;
+            if (result < ptr) {
+                matched_prop = p;
+                break;
+            }
+            
         }
-        return m_props;
+        uint256 payout = calculateReturn(pending_bet.amount, matched_prop.odds);
+        if (payout > 0) { 
+            bool sent = pending_bet.bettor.send(payout);
+            require(sent, "Unable to pay bettor");
+        }
+        emit BetResolved(result, pending_bet, matched_prop, payout);
+        phase = Phase.Betting;
     }
 
-    function reduceToByte(bytes32 a, bytes32 b) public pure returns (uint8){
+    function reduceToUint(bytes32 a) public pure returns (uint8){
         uint8 result;
         unchecked {
             for (uint i=0; i < 32; i++) {
                 result += uint8(a[i]);
-                result += uint8(b[i]);
             }
             return result;
         }
