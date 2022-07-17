@@ -6,6 +6,11 @@ import {CasinoProp, Casino} from "../src/Casino.sol";
 
 contract CasinoTest is CasinoProp, Test {
 
+    bytes32 game_nonce;
+    function setUp() public {
+        game_nonce = keccak256("strating");
+    }
+
     function signBet(uint256 key, bytes32 nonce)
         internal
         returns (Signed memory)
@@ -15,63 +20,56 @@ contract CasinoTest is CasinoProp, Test {
     }
 
     function testDoubleOrNothing() public {
-        Casino sino;
-        bytes32 startingNonce = keccak256("seed string");
         Prop memory double_or_nothing = Prop({
-            probability: 50,
+            probability: 51,
             odds: Odds({numerator: 2, denominator: 1})
         });
         Prop[] memory props = new Prop[](1);
         props[0] = double_or_nothing;
-        uint256 bank_pk = 0xA;
-        address bank = vm.addr(bank_pk);
-        vm.deal(bank, 1 ether);
-        vm.startPrank(bank);
-        sino = new Casino{value: 1000}(startingNonce, props);
-        vm.stopPrank();
-
-        uint256 bettor_pk = 0xB;
-        address bettor = vm.addr(bettor_pk);
-        vm.deal(bettor, 1 ether);
-        vm.startPrank(bettor);
-        emit log_named_address("bettor", bettor);
-        for (uint i=0; i< 1000; i++) {
-            makeBet(sino, 1, bettor_pk, bank_pk);
-        }
-        emit log_named_uint("contract:", address(sino).balance);
-        emit log_named_uint("bettor:", bettor.balance);
-        uint total = address(sino).balance + bettor.balance;
-        emit log_named_uint("total:", total);
+        permuteGame(props);
     }
 
     function testBigPayout() public {
-        Casino sino;
-        bytes32 startingNonce = keccak256("sed string");
         Prop memory one_in_ten = Prop({
-            probability: 11,
-            odds: Odds({numerator: 10, denominator: 1})
+            probability: 10,
+            odds: Odds({numerator: 21, denominator: 2})
         });
         Prop[] memory props = new Prop[](1);
         props[0] = one_in_ten;
+        permuteGame(props);
+    }
+
+    uint pk = 0xA;
+    function permuteGame(Prop[] memory props) internal {
+        int total = 0;
+        for (uint i=0; i < 20; i++) {
+            total += runGame(props);
+        }
+        emit log_named_int("meta:", total);
+    }
+
+    function runGame(Prop[] memory props) internal returns (int) {
+        game_nonce = keccak256(abi.encode(game_nonce, props));
+        Casino sino;
         uint256 bank_pk = 0xC;
         address bank = vm.addr(bank_pk);
-        vm.deal(bank, 1 ether);
+        vm.deal(bank, 10 ether);
         vm.startPrank(bank);
-        sino = new Casino{value: 1000}(startingNonce, props);
+        uint contract_value = 1000;
+        sino = new Casino{value: contract_value}(game_nonce, props);
         vm.stopPrank();
 
         uint256 bettor_pk = 0xD;
         address bettor = vm.addr(bettor_pk);
-        vm.deal(bettor, 1 ether);
+        vm.deal(bettor, 10 ether);
         vm.startPrank(bettor);
-        emit log_named_address("bettor", bettor);
         for (uint i=0; i< 1000; i++) {
             makeBet(sino, 1, bettor_pk, bank_pk);
         }
-        emit log_named_uint("contract:", address(sino).balance);
-        emit log_named_uint("bettor:", bettor.balance);
-        uint total = address(sino).balance + bettor.balance;
-        emit log_named_uint("total:", total);
+        vm.stopPrank();
+        int bank_result = int(address(sino).balance) - int(contract_value);
+        emit log_named_int("result:", bank_result);
+        return bank_result;
     }
 
     function makeBet(Casino sino, uint amount, uint256 bettor_pk, uint256 bank_pk) public {
