@@ -26,6 +26,7 @@ contract CasinoProp {
 contract Casino is CasinoProp {
     event BetPlaced(Bet bet);
     event BetResolved(uint8 result, Bet bet, Prop prop, uint256 payout);
+    event Blem(uint a, uint b);
 
     address bank;
     bytes32 public nonce;
@@ -111,13 +112,13 @@ contract Casino is CasinoProp {
         phase = Phase.Betting;
     }
 
-    function reduceToUint(bytes32 a) public pure returns (uint8){
-        uint8 result;
-        unchecked {
-            for (uint i=0; i < 32; i++) {
-                result += uint8(a[i]);
-            }
-            return result;
+    function reduceToUint(bytes32 a) public returns (uint8){
+        uint result = 0;
+        for (uint i=0; i < 32; i++) {
+            uint8 bite = uint8(a[i]);
+            emit Blem(result, bite);
+            result = (result + bite) % 100;
         }
+        return uint8(result);
     }
 }

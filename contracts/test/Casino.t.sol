@@ -18,7 +18,7 @@ contract CasinoTest is CasinoProp, Test {
         Casino sino;
         bytes32 startingNonce = keccak256("seed string");
         Prop memory double_or_nothing = Prop({
-            probability: 127,
+            probability: 50,
             odds: Odds({numerator: 2, denominator: 1})
         });
         Prop[] memory props = new Prop[](1);
@@ -40,17 +40,19 @@ contract CasinoTest is CasinoProp, Test {
         }
         emit log_named_uint("contract:", address(sino).balance);
         emit log_named_uint("bettor:", bettor.balance);
+        uint total = address(sino).balance + bettor.balance;
+        emit log_named_uint("total:", total);
     }
 
     function testBigPayout() public {
         Casino sino;
         bytes32 startingNonce = keccak256("sed string");
-        Prop memory one_in_sixteen = Prop({
-            probability: 16,
-            odds: Odds({numerator: 16, denominator: 1})
+        Prop memory one_in_ten = Prop({
+            probability: 11,
+            odds: Odds({numerator: 10, denominator: 1})
         });
         Prop[] memory props = new Prop[](1);
-        props[0] = one_in_sixteen;
+        props[0] = one_in_ten;
         uint256 bank_pk = 0xC;
         address bank = vm.addr(bank_pk);
         vm.deal(bank, 1 ether);
@@ -68,6 +70,8 @@ contract CasinoTest is CasinoProp, Test {
         }
         emit log_named_uint("contract:", address(sino).balance);
         emit log_named_uint("bettor:", bettor.balance);
+        uint total = address(sino).balance + bettor.balance;
+        emit log_named_uint("total:", total);
     }
 
     function makeBet(Casino sino, uint amount, uint256 bettor_pk, uint256 bank_pk) public {
