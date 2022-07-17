@@ -21,7 +21,7 @@ contract CasinoTest is CasinoProp, Test {
 
     function testDoubleOrNothing() public {
         Prop memory double_or_nothing = Prop({
-            probability: 51,
+            probability: 50,
             odds: Odds({numerator: 2, denominator: 1})
         });
         Prop[] memory props = new Prop[](1);
@@ -32,7 +32,7 @@ contract CasinoTest is CasinoProp, Test {
     function testBigPayout() public {
         Prop memory one_in_ten = Prop({
             probability: 10,
-            odds: Odds({numerator: 21, denominator: 2})
+            odds: Odds({numerator: 10, denominator: 2})
         });
         Prop[] memory props = new Prop[](1);
         props[0] = one_in_ten;

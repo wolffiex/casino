@@ -63,7 +63,7 @@ contract Casino is CasinoProp {
         returns (uint256)
     {
         if (odds.numerator == 0 || odds.denominator == 0) return 0;
-        return (amount / odds.denominator) * odds.numerator;
+        return (amount * odds.numerator)/odds.denominator;
     }
 
     function placeBet(Signed memory signed) public payable {
